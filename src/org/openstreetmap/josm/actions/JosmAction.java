@@ -83,7 +83,7 @@ public abstract class JosmAction extends AbstractAction implements Destroyable {
             String toolbarId, boolean installAdapters) {
         super(name);
         if (icon != null) {
-            ImageResource resource = icon.getResource();
+            final ImageResource resource = icon.getResource();
             if (resource != null) {
                 try {
                     resource.attachImageIcon(this, true);
@@ -353,11 +353,15 @@ public abstract class JosmAction extends AbstractAction implements Destroyable {
         MainApplication.worker.submit(() -> {
                         try {
                             future.get();
-                        } catch (InterruptedException | ExecutionException | CancellationException e) {
+                        } catch (InterruptedException e) {
+                        	Logging.error(e);
+                        	Thread.currentThread().interrupt();
+                        } catch (ExecutionException | CancellationException e) {
                             Logging.error(e);
                             return;
+                        } finally {
+                        	monitor.close();
                         }
-                        monitor.close();
                     });
     }
 
@@ -419,7 +423,7 @@ public abstract class JosmAction extends AbstractAction implements Destroyable {
      * @since 13434
      */
     protected final void updateEnabledStateOnCurrentSelection(boolean allowReadOnly) {
-        DataSet ds = getLayerManager().getActiveDataSet();
+        final DataSet ds = getLayerManager().getActiveDataSet();
         if (ds != null && (allowReadOnly || !ds.isLocked())) {
             updateEnabledState(ds.getSelected());
         } else {
@@ -511,11 +515,12 @@ public abstract class JosmAction extends AbstractAction implements Destroyable {
             String dialogTitle, String outsideDialogMessage, String incompleteDialogMessage,
             Collection<? extends OsmPrimitive> primitives,
             Collection<? extends OsmPrimitive> ignore) {
-        int checkRes = Command.checkOutlyingOrIncompleteOperation(primitives, ignore);
+        final int checkRes = Command.checkOutlyingOrIncompleteOperation(primitives, ignore);
         if ((checkRes & Command.IS_OUTSIDE) != 0) {
-            boolean answer = showConfirmOutlyingOperationDialog(operation + "_outside_nodes", outsideDialogMessage, dialogTitle);
-            if (!answer)
-                return false;
+            final boolean answer = showConfirmOutlyingOperationDialog(operation + "_outside_nodes", outsideDialogMessage, dialogTitle);
+            if (!answer) {
+				return false;
+			}
         }
         if ((checkRes & Command.IS_INCOMPLETE) != 0) {
             return showConfirmOutlyingOperationDialog(operation + "_incomplete", incompleteDialogMessage, dialogTitle);
@@ -524,9 +529,9 @@ public abstract class JosmAction extends AbstractAction implements Destroyable {
     }
 
     private static boolean showConfirmOutlyingOperationDialog(String preferenceKey, String dialogMessage, String dialogTitle) {
-        JPanel msg = new JPanel(new GridBagLayout());
+        final JPanel msg = new JPanel(new GridBagLayout());
         msg.add(new JMultilineLabel("<html>" + dialogMessage + "</html>"));
-        boolean answer = ConditionalOptionPaneUtil.showConfirmationDialog(
+        final boolean answer = ConditionalOptionPaneUtil.showConfirmationDialog(
                 preferenceKey,
                 MainApplication.getMainFrame(),
                 msg,
@@ -535,7 +540,7 @@ public abstract class JosmAction extends AbstractAction implements Destroyable {
                 JOptionPane.QUESTION_MESSAGE,
                 JOptionPane.YES_OPTION);
         if (!answer && JOptionPane.NO_OPTION == ConditionalOptionPaneUtil.getDialogReturnValue(preferenceKey)) {
-            String message = tr("Operation was not performed, as per {0} preference", preferenceKey);
+            final String message = tr("Operation was not performed, as per {0} preference", preferenceKey);
             new Notification(message).setIcon(JOptionPane.INFORMATION_MESSAGE).show();
             Logging.info(message);
         }
