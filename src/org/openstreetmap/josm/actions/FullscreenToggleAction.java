@@ -4,7 +4,6 @@ package org.openstreetmap.josm.actions;
 import static org.openstreetmap.josm.gui.help.HelpUtil.ht;
 import static org.openstreetmap.josm.tools.I18n.tr;
 
-import java.awt.Frame;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
@@ -79,27 +78,30 @@ public class FullscreenToggleAction extends ToggleAction {
     }
 
     protected void setMode() {
-        JFrame frame = MainApplication.getMainFrame();
+        final JFrame frame = MainApplication.getMainFrame();
+        if (frame == null) {
+            return;
+        }
 
-        List<Window> visibleWindows = new ArrayList<>();
-        visibleWindows.add(frame);
-        for (Window w : Frame.getWindows()) {
-            if (w.isVisible() && w != frame) {
+        final List<Window> visibleWindows = new ArrayList<>();
+        for (Window w : Window.getWindows()) {
+            if (w != null && w.isVisible() && w != frame) {
                 visibleWindows.add(w);
             }
         }
 
-        boolean selected = isSelected();
+        final boolean selected = isSelected();
 
-        if (frame != null) {
-            frame.dispose();
-            frame.setUndecorated(selected);
+        
+		frame.dispose();
+		frame.setUndecorated(selected);
 
-            if (selected) {
-                prevBounds = frame.getBounds();
-                frame.setBounds(new Rectangle(GuiHelper.getScreenSize()));
-            }
-        }
+		if (selected) {
+			prevBounds = frame.getBounds();
+			frame.setBounds(new Rectangle(GuiHelper.getScreenSize()));
+		} else if (prevBounds != null) {
+	        frame.setBounds(prevBounds);
+	    }
 
         // we cannot use hw-exclusive fullscreen mode in MS-Win, as long
         // as josm throws out modal dialogs.
@@ -107,23 +109,21 @@ public class FullscreenToggleAction extends ToggleAction {
         // the good thing is: fullscreen works without exclusive mode,
         // since windows (or java?) draws the undecorated window full-
         // screen by default (it's a simulated mode, but should be ok)
-        String exclusive = Config.getPref().get("draw.fullscreen.exclusive-mode", "auto");
+        final String exclusive = Config.getPref().get("draw.fullscreen.exclusive-mode", "auto");
         if (("true".equals(exclusive) || ("auto".equals(exclusive) && !PlatformManager.isPlatformWindows())) && gd != null) {
             gd.setFullScreenWindow(selected ? frame : null);
         }
-
-        if (!selected && prevBounds != null && frame != null) {
-            frame.setBounds(prevBounds);
-        }
+        
+        frame.setVisible(true);
 
         for (Window wind : visibleWindows) {
-            if (wind != null) {
+            if (wind != null && wind.isDisplayable()) {
                 wind.setVisible(true);
             }
         }
 
         // Free F10 key to allow it to be used by plugins, even after full screen (see #7502)
-        if (frame != null) {
+        if (frame.getJMenuBar() != null) {
             frame.getJMenuBar().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_F10, 0), "none");
         }
     }
