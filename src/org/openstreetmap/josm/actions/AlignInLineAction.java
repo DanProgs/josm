@@ -291,52 +291,54 @@ public final class AlignInLineAction extends JosmAction {
      * @return List of useful lines
      * @throws InvalidSelection if a node got more than 4 neighbours (self-crossing way)
      */
-    private static List<Line> getInvolvedLines(Node node, List<Way> refWays) throws InvalidSelection {
-        List<Line> lines = new ArrayList<>();
-        List<Node> neighbors = new ArrayList<>();
-        for (Way way: refWays) {
-            List<Node> nodes = way.getNodes();
-            neighbors.clear();
-            for (int i = 1; i < nodes.size()-1; i++) {
-                if (nodes.get(i) == node) {
-                    neighbors.add(nodes.get(i-1));
-                    neighbors.add(nodes.get(i+1));
-                }
-            }
-            if (neighbors.isEmpty())
-                continue;
-            else if (neighbors.size() == 2)
-                // Non self crossing
-                lines.add(new Line(neighbors.get(0), neighbors.get(1)));
-            else if (neighbors.size() == 4) {
-                // Self crossing, have to make 2 lines with 4 neighbors
-                // see #9081 comment 6
-                EastNorth c = node.getEastNorth();
-                double[] angle = IntStream.range(0, 4)
-                        .mapToDouble(i -> PolarCoor.computeAngle(neighbors.get(i).getEastNorth(), c)).toArray();
-                double[] deltaAngle = new double[3];
-                for (int i = 0; i < 3; i++) {
-                    deltaAngle[i] = angle[i+1] - angle[0];
-                    if (deltaAngle[i] < 0)
-                        deltaAngle[i] += 2*Math.PI;
-                }
-                int nb = 0;
-                if (deltaAngle[1] < deltaAngle[0]) nb++;
-                if (deltaAngle[2] < deltaAngle[0]) nb++;
-                if (nb == 1) {
-                    // Align along [neighbors[0], neighbors[1]] and [neighbors[0], neighbors[2]]
-                    lines.add(new Line(neighbors.get(0), neighbors.get(1)));
-                    lines.add(new Line(neighbors.get(2), neighbors.get(3)));
-                } else {
-                    // Align along [neighbors[0], neighbors[2]] and [neighbors[1], neighbors[3]]
-                    lines.add(new Line(neighbors.get(0), neighbors.get(2)));
-                    lines.add(new Line(neighbors.get(1), neighbors.get(3)));
-                }
-            } else
-                throw new InvalidSelection("cannot treat more than 4 neighbours, got "+neighbors.size());
-        }
-        return lines;
-    }
+	private static List<Line> getInvolvedLines(Node node, List<Way> refWays) throws InvalidSelection {
+		List<Line> lines = new ArrayList<>();
+		List<Node> neighbors = new ArrayList<>();
+		for (Way way : refWays) {
+			List<Node> nodes = way.getNodes();
+			neighbors.clear();
+			for (int i = 1; i < nodes.size() - 1; i++) {
+				if (nodes.get(i) == node) {
+					neighbors.add(nodes.get(i - 1));
+					neighbors.add(nodes.get(i + 1));
+				}
+			}
+			if (!neighbors.isEmpty()) {
+				if (neighbors.size() == 2)
+					// Non self crossing
+					lines.add(new Line(neighbors.get(0), neighbors.get(1)));
+				else if (neighbors.size() == 4) {
+					// Self crossing, have to make 2 lines with 4 neighbors
+					// see #9081 comment 6
+					EastNorth c = node.getEastNorth();
+					double[] angle = IntStream.range(0, 4)
+							.mapToDouble(i -> PolarCoor.computeAngle(neighbors.get(i).getEastNorth(), c)).toArray();
+					double[] deltaAngle = new double[3];
+					for (int i = 0; i < 3; i++) {
+						deltaAngle[i] = angle[i + 1] - angle[0];
+						if (deltaAngle[i] < 0)
+							deltaAngle[i] += 2 * Math.PI;
+					}
+					int nb = 0;
+					if (deltaAngle[1] < deltaAngle[0])
+						nb++;
+					if (deltaAngle[2] < deltaAngle[0])
+						nb++;
+					if (nb == 1) {
+						// Align along [neighbors[0], neighbors[1]] and [neighbors[0], neighbors[2]]
+						lines.add(new Line(neighbors.get(0), neighbors.get(1)));
+						lines.add(new Line(neighbors.get(2), neighbors.get(3)));
+					} else {
+						// Align along [neighbors[0], neighbors[2]] and [neighbors[1], neighbors[3]]
+						lines.add(new Line(neighbors.get(0), neighbors.get(2)));
+						lines.add(new Line(neighbors.get(1), neighbors.get(3)));
+					}
+				} else
+					throw new InvalidSelection("cannot treat more than 4 neighbours, got " + neighbors.size());
+			}
+		}
+		return lines;
+	}
 
     /**
      * Align a single node relative to a set of lines #9081
