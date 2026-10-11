@@ -25,6 +25,8 @@ import org.openstreetmap.josm.gui.layer.MapGridPaintable.GridType;
  * @since 19640
  */
 public class AlignGridRotationAction extends JosmAction {
+	
+	private static final EastNorth[] EMPTY_DIRECTION = new EastNorth[0];
 
     /**
      * Constructs a new {@code AlignGridRotationAction}.
@@ -43,28 +45,33 @@ public class AlignGridRotationAction extends JosmAction {
      */
     static EastNorth[] getSelectedDirection(DataSet ds) {
         if (ds == null) {
-            return null;
+            return EMPTY_DIRECTION;
         }
-        Collection<Way> ways = ds.getSelectedWays();
-        Collection<Node> nodes = ds.getSelectedNodes();
+        final Collection<Way> ways = ds.getSelectedWays();
+        final Collection<Node> nodes = ds.getSelectedNodes();
+        
+        final int waysSize = ways.size();
+        final int nodesSize = nodes.size();
+        
         Node a = null;
         Node b = null;
-        if (ways.size() == 1 && nodes.isEmpty()) {
-            Way w = ways.iterator().next();
+        if (waysSize == 1 && nodesSize ==0) {
+            final Way w = ways.iterator().next();
             if (w.getNodesCount() >= 2) {
                 a = w.firstNode();
                 b = w.isClosed() ? w.getNode(1) : w.lastNode();
             }
-        } else if (nodes.size() == 2 && ways.isEmpty()) {
-            Iterator<Node> it = nodes.iterator();
+        } else if (nodesSize == 2 && waysSize ==0) {
+            final Iterator<Node> it = nodes.iterator();
             a = it.next();
             b = it.next();
         }
         if (a == null || b == null || !a.isLatLonKnown() || !b.isLatLonKnown()) {
-            return null;
+            return EMPTY_DIRECTION;
         }
-        EastNorth[] result = {a.getEastNorth(), b.getEastNorth()};
-        return result[0].equalsEpsilon(result[1], 1e-9) ? null : result;
+        
+        final EastNorth[] result = {a.getEastNorth(), b.getEastNorth()};
+        return result[0].equalsEpsilon(result[1], 1e-9) ? EMPTY_DIRECTION : result;
     }
 
     /**
@@ -85,7 +92,7 @@ public class AlignGridRotationAction extends JosmAction {
 
     @Override
     protected void updateEnabledState() {
-        setEnabled(getSelectedDirection(getLayerManager().getEditDataSet()) != null);
+        setEnabled(getSelectedDirection(getLayerManager().getEditDataSet()).length > 0);
     }
 
     @Override
@@ -95,8 +102,8 @@ public class AlignGridRotationAction extends JosmAction {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        EastNorth[] direction = getSelectedDirection(getLayerManager().getEditDataSet());
-        if (direction == null) {
+        final EastNorth[] direction = getSelectedDirection(getLayerManager().getEditDataSet());
+        if (direction.length == 0) {
             return;
         }
         MapGridPaintable.ROTATION.put(rotationOf(direction[0], direction[1]));
