@@ -68,6 +68,7 @@ public class AddSelectionToRelations extends AbstractRelationAction implements D
         }
     }
 
+    @SuppressWarnings("PMD.UnusedPrivateMethod")
     private void selectionChanged(final Collection<? extends IPrimitive> newSelection) {
         GuiHelper.runInEDT(() -> setEnabled(!Utils.isEmpty(newSelection)
                 && OsmUtils.isOsmCollectionEditable(relations)));
