@@ -3,7 +3,8 @@ package org.openstreetmap.josm.data.imagery;
 
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.function.BiPredicate;
@@ -92,7 +93,7 @@ public final class GetCapabilitiesParseHelper {
      */
     public static void moveReaderToEndCurrentTag(XMLStreamReader reader) throws XMLStreamException {
         int level = 0;
-        QName tag = reader.getName();
+        final QName tag = reader.getName();
         for (int event = reader.getEventType(); reader.hasNext(); event = reader.next()) {
             if (XMLStreamReader.START_ELEMENT == event) {
                 level += 1;
@@ -117,9 +118,9 @@ public final class GetCapabilitiesParseHelper {
      * @throws XMLStreamException if any XML stream error occurs
      */
     public static String getElementTextWithSubtags(XMLStreamReader reader) throws XMLStreamException {
-        StringBuilder ret = new StringBuilder();
+        final StringBuilder ret = new StringBuilder();
         int level = 0;
-        QName tag = reader.getName();
+        final QName tag = reader.getName();
         for (int event = reader.getEventType(); reader.hasNext(); event = reader.next()) {
             if (XMLStreamReader.START_ELEMENT == event) {
                 if (level > 0) {
@@ -167,7 +168,7 @@ public final class GetCapabilitiesParseHelper {
      */
     public static boolean moveReaderToTag(XMLStreamReader reader,
             BiPredicate<QName, QName> equalsFunc, QName... tags) throws XMLStreamException {
-        QName stopTag = reader.getName();
+        final QName stopTag = reader.getName();
         int currentLevel = 0;
         QName searchTag = tags[currentLevel];
         QName parentTag = null;
@@ -214,7 +215,7 @@ public final class GetCapabilitiesParseHelper {
      * @throws XMLStreamException See {@link XMLStreamReader}
      */
     public static TransferMode getTransferMode(XMLStreamReader reader) throws XMLStreamException {
-        QName getQname = QN_OWS_GET;
+        final QName getQname = QN_OWS_GET;
 
         Utils.ensure(getQname.equals(reader.getName()), "WMTS Parser state invalid. Expected element %s, got %s",
                 getQname, reader.getName());
@@ -238,10 +239,17 @@ public final class GetCapabilitiesParseHelper {
      * @throws MalformedURLException in case of malformed URL
      * @since 10993
      */
-    public static String normalizeCapabilitiesUrl(String url) throws MalformedURLException {
-        URL inUrl = new URL(url);
-        URL ret = new URL(inUrl.getProtocol(), inUrl.getHost(), inUrl.getPort(), inUrl.getFile());
-        return ret.toExternalForm();
+    public static String normalizeCapabilitiesUrl(String url) throws MalformedURLException {        
+        if (url == null || url.isBlank()) {
+            throw new MalformedURLException("URL string is null or blank");
+        }
+        try {
+            final URI inUri = new URI(url);
+            final URI retUri = new URI(inUri.getScheme(), null, inUri.getHost(), inUri.getPort(), inUri.getPath(), inUri.getQuery(), null);
+            return retUri.toURL().toExternalForm();
+        } catch (URISyntaxException e) {
+            throw new MalformedURLException("Invalid URL syntax: " + e.getMessage());
+        }
     }
 
     /**

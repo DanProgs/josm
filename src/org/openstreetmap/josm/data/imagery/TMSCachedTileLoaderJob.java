@@ -6,6 +6,8 @@ import static org.openstreetmap.josm.tools.I18n.tr;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
@@ -85,32 +87,37 @@ public class TMSCachedTileLoaderJob extends JCSCachedTileLoaderJob<String, Buffe
 
     @Override
     public String getCacheKey() {
-        if (tile != null) {
-            TileSource tileSource = tile.getTileSource();
-            return Optional.ofNullable(tileSource.getName()).orElse("").replace(ICache.NAME_COMPONENT_DELIMITER, "_")
-                    + ICache.NAME_COMPONENT_DELIMITER
-                    + tileSource.getTileId(tile.getZoom(), tile.getXtile(), tile.getYtile());
-        }
-        return null;
+        if (tile == null) {
+			return null;
+		}
+		final TileSource tileSource = tile.getTileSource();
+		return Optional.ofNullable(tileSource.getName()).orElse("").replace(ICache.NAME_COMPONENT_DELIMITER, "_")
+		        + ICache.NAME_COMPONENT_DELIMITER
+		        + tileSource.getTileId(tile.getZoom(), tile.getXtile(), tile.getYtile());
     }
 
     /*
-     *  this doesn't needs to be synchronized, as it's not that costly to keep only one execution
-     *  in parallel, but URL creation and Tile.getUrl() are costly and are not needed when fetching
-     *  data from cache, that's why URL creation is postponed until it's needed
+     * This doesn't need to be synchronized for the entire method, as it's not that costly 
+     * to keep only one execution in parallel. However, URL creation and tile.getUrl() 
+     * are costly and are not needed when fetching data from the cache. That's why 
+     * URL creation is postponed until it's actually needed.
      *
-     *  We need to have static url value for TileLoaderJob, as for some TileSources we might get different
-     *  URL's each call we made (servers switching), and URL's are used below as a key for duplicate detection
-     *
+     * We need to have a static/stable URL value for TileLoaderJob, as for some TileSources 
+     * we might get different URLs on each call (due to server switching), and URLs are 
+     * used below as a key for duplicate detection.
      */
     @Override
     public URL getUrl() throws IOException {
         if (url == null) {
             synchronized (this) {
                 if (url == null) {
-                    String sUrl = tile.getUrl();
-                    if (!"".equals(sUrl)) {
-                        url = new URL(sUrl);
+                    final String sUrl = tile.getUrl();
+                    if (sUrl != null && !sUrl.isBlank()) {
+                        try {
+                            url = new URI(sUrl).toURL();
+                        } catch (URISyntaxException e) {
+                            throw new IOException("Invalid URL format: " + sUrl, e);
+                        }
                     }
                 }
             }
@@ -121,7 +128,7 @@ public class TMSCachedTileLoaderJob extends JCSCachedTileLoaderJob<String, Buffe
     @Override
     public boolean isObjectLoadable() {
         if (cacheData != null) {
-            byte[] content = cacheData.getContent();
+            final byte[] content = cacheData.getContent();
             try {
                 return content.length > 0 || cacheData.getImage() != null || isNoTileAtZoom();
             } catch (IOException e) {
@@ -139,19 +146,19 @@ public class TMSCachedTileLoaderJob extends JCSCachedTileLoaderJob<String, Buffe
             attributes.setNoTileAtZoom(true);
             return false; // do no try to load data from no-tile at zoom, cache empty object instead
         }
-        if (isNotImage(headers, statusCode)) {
-            String message = detectErrorMessage(new String(content, StandardCharsets.UTF_8));
-            if (!Utils.isEmpty(message)) {
-                tile.setError(message);
-            }
-            return false;
-        }
-        return super.isResponseLoadable(headers, statusCode, content);
+        if (!isNotImage(headers, statusCode)) {
+			return super.isResponseLoadable(headers, statusCode, content);
+		}
+		final String message = detectErrorMessage(new String(content, StandardCharsets.UTF_8));
+		if (!Utils.isEmpty(message)) {
+		    tile.setError(message);
+		}
+		return false;
     }
 
     private boolean isNotImage(Map<String, List<String>> headers, int statusCode) {
         if (statusCode == 200 && headers.containsKey("Content-Type") && !headers.get("Content-Type").isEmpty()) {
-            String contentType = headers.get("Content-Type").stream().findAny().orElse("").toLowerCase(Locale.ROOT);
+            final String contentType = headers.get("Content-Type").stream().findAny().orElse("").toLowerCase(Locale.ROOT);
             if (!contentType.startsWith("image")
                 && !contentType.startsWith("application/octet-stream")
                 && !MVTFile.MIMETYPE.contains(contentType)) {
@@ -187,7 +194,7 @@ public class TMSCachedTileLoaderJob extends JCSCachedTileLoaderJob<String, Buffe
     @Override
     public void loadingFinished(CacheEntry object, CacheEntryAttributes attributes, LoadResult result) {
         this.attributes = attributes; // as we might get notification from other object than our selfs, pass attributes along
-        Set<TileLoaderListener> listeners = inProgress.remove(getCacheKey());
+        final Set<TileLoaderListener> listeners = inProgress.remove(getCacheKey());
         boolean status = result == LoadResult.SUCCESS;
 
         try {
@@ -203,7 +210,7 @@ public class TMSCachedTileLoaderJob extends JCSCachedTileLoaderJob<String, Buffe
             case SUCCESS:
                 handleNoTileAtZoom();
                 if (attributes != null) {
-                    int httpStatusCode = attributes.getResponseCode();
+                    final int httpStatusCode = attributes.getResponseCode();
                     if (httpStatusCode >= 400 && !isNoTileAtZoom()) {
                         status = false;
                         handleError(attributes);
@@ -246,7 +253,7 @@ public class TMSCachedTileLoaderJob extends JCSCachedTileLoaderJob<String, Buffe
             return;
         }
         if (attributes != null) {
-            int httpStatusCode = attributes.getResponseCode();
+            final int httpStatusCode = attributes.getResponseCode();
             if (attributes.getErrorMessage() == null) {
                 tile.setError(tr("HTTP error {0} when loading tiles", httpStatusCode));
             } else {
@@ -273,7 +280,7 @@ public class TMSCachedTileLoaderJob extends JCSCachedTileLoaderJob<String, Buffe
      */
     @Override
     protected String getServerKey() {
-        TileSource ts = tile.getSource();
+        final TileSource ts = tile.getSource();
         if (ts instanceof AbstractTMSTileSource) {
             return ((AbstractTMSTileSource) ts).getBaseUrl();
         }
@@ -292,15 +299,15 @@ public class TMSCachedTileLoaderJob extends JCSCachedTileLoaderJob<String, Buffe
 
     @Override
     protected CacheEntryAttributes parseHeaders(HttpClient.Response urlConn) {
-        CacheEntryAttributes ret = super.parseHeaders(urlConn);
+        final CacheEntryAttributes ret = super.parseHeaders(urlConn);
         // keep the expiration time between MINIMUM_EXPIRES and MAXIMUM_EXPIRES, so we will cache the tiles
         // at least for some short period of time, but not too long
-        long minimumExpiryTime = TimeUnit.SECONDS.toMillis(options.getMinimumExpiryTime());
-        long nowPlusMin = now + Math.max(MINIMUM_EXPIRES.get(), minimumExpiryTime);
+        final long minimumExpiryTime = TimeUnit.SECONDS.toMillis(options.getMinimumExpiryTime());
+        final long nowPlusMin = now + Math.max(MINIMUM_EXPIRES.get(), minimumExpiryTime);
         if (ret.getExpirationTime() < nowPlusMin) {
             ret.setExpirationTime(nowPlusMin);
         }
-        long nowPlusMax = now + Math.max(MAXIMUM_EXPIRES.get(), minimumExpiryTime);
+        final long nowPlusMax = now + Math.max(MAXIMUM_EXPIRES.get(), minimumExpiryTime);
         if (ret.getExpirationTime() > nowPlusMax) {
             ret.setExpirationTime(nowPlusMax);
         }
@@ -326,16 +333,16 @@ public class TMSCachedTileLoaderJob extends JCSCachedTileLoaderJob<String, Buffe
 
     private boolean tryLoadTileImage(CacheEntry object) throws IOException {
         if (object != null) {
-            byte[] content = object.getContent();
+            final byte[] content = object.getContent();
             if (content.length > 0 || tile instanceof VectorTile) {
                 try (ByteArrayInputStream in = new ByteArrayInputStream(content)) {
                     tile.loadImage(in);
                     if ((!(tile instanceof VectorTile) && tile.getImage() == null)
                         || ((tile instanceof VectorTile) && !tile.isLoaded())) {
-                        String s = new String(content, StandardCharsets.UTF_8);
-                        Matcher m = SERVICE_EXCEPTION_PATTERN.matcher(s);
+                        final String s = new String(content, StandardCharsets.UTF_8);
+                        final Matcher m = SERVICE_EXCEPTION_PATTERN.matcher(s);
                         if (m.matches()) {
-                            String message = Utils.strip(m.group(1));
+                            final String message = Utils.strip(m.group(1));
                             tile.setError(message);
                             Logging.error(message);
                             Logging.debug(s);
@@ -354,15 +361,15 @@ public class TMSCachedTileLoaderJob extends JCSCachedTileLoaderJob<String, Buffe
 
     @Override
     public String detectErrorMessage(String data) {
-        Matcher xml = SERVICE_EXCEPTION_PATTERN.matcher(data);
-        Matcher json = JSON_PATTERN.matcher(data);
+        final Matcher xml = SERVICE_EXCEPTION_PATTERN.matcher(data);
+        final Matcher json = JSON_PATTERN.matcher(data);
         return xml.matches() ? removeCdata(Utils.strip(xml.group(1)))
             : json.matches() ? Utils.strip(json.group(1))
             : super.detectErrorMessage(data);
     }
 
     private static String removeCdata(String msg) {
-        Matcher m = CDATA_PATTERN.matcher(msg);
+        final Matcher m = CDATA_PATTERN.matcher(msg);
         return m.matches() ? Utils.strip(m.group(1)) : msg;
     }
 }
