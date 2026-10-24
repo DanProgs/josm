@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -97,14 +99,14 @@ public class DownloadFileTask extends PleaseWaitRunnable {
     public void download() throws DownloadException {
         try {
             if (mkdir) {
-                File newDir = file.getParentFile();
-                if (!newDir.exists()) {
+                final File newDir = file.getParentFile();
+                if (newDir != null && !newDir.exists()) {
                     Utils.mkDirs(newDir);
                 }
             }
 
-            URL url = new URL(address);
-            long size;
+            final URL url = new URI(address).toURL();
+            final long size;
             synchronized (this) {
                 downloadConnection = HttpClient.create(url).useCache(false);
                 downloadConnection.connect();
@@ -118,18 +120,23 @@ public class DownloadFileTask extends PleaseWaitRunnable {
                 InputStream in = downloadConnection.getResponse().getContent();
                 OutputStream out = Files.newOutputStream(file.toPath())
             ) {
-                byte[] buffer = new byte[32_768];
-                int count = 0;
+                final byte[] buffer = new byte[32_768];
+                long count = 0;
                 long p1 = 0;
                 long p2;
                 for (int read = in.read(buffer); read != -1; read = in.read(buffer)) {
                     out.write(buffer, 0, read);
                     count += read;
-                    if (canceled) break;
-                    p2 = 100L * count / size;
-                    if (p2 != p1) {
-                        progressMonitor.setTicks((int) p2);
-                        p1 = p2;
+                    if (canceled) {
+						break;
+					}
+                    
+                    if (size > 0) {
+                    	p2 = 100L * count / size;
+                        if (p2 != p1) {
+                            progressMonitor.setTicks((int) p2);
+                            p1 = p2;
+                        }
                     }
                 }
             }
@@ -141,14 +148,15 @@ public class DownloadFileTask extends PleaseWaitRunnable {
                     Utils.deleteFile(file);
                 }
             }
-        } catch (MalformedURLException e) {
-            String msg = tr("Cannot download file ''{0}''. Its download link ''{1}'' is not a valid URL. Skipping download.",
+        } catch (MalformedURLException | URISyntaxException e) {
+            final String msg = tr("Cannot download file ''{0}''. Its download link ''{1}'' is not a valid URL. Skipping download.",
                     file.getName(), address);
             Logging.warn(msg);
             throw new DownloadException(msg, e);
         } catch (IOException | InvalidPathException e) {
-            if (canceled)
-                return;
+            if (canceled) {
+				return;
+			}
             throw new DownloadException(e.getMessage(), e);
         } finally {
             closeConnectionIfNeeded();
@@ -157,7 +165,9 @@ public class DownloadFileTask extends PleaseWaitRunnable {
 
     @Override
     protected void realRun() throws SAXException, IOException {
-        if (canceled) return;
+        if (canceled) {
+			return;
+		}
         try {
             download();
         } catch (DownloadException e) {
@@ -182,21 +192,23 @@ public class DownloadFileTask extends PleaseWaitRunnable {
      * @throws IOException if any I/O error occurs
      */
     public static void unzipFileRecursively(File file, String dir) throws IOException {
-        Path dirPath = Paths.get(dir);
+        final Path dirPath = Paths.get(dir);
         try (ZipFile zf = new ZipFile(file, StandardCharsets.UTF_8)) {
-            Enumeration<? extends ZipEntry> es = zf.entries();
+            final Enumeration<? extends ZipEntry> es = zf.entries();
             while (es.hasMoreElements()) {
-                ZipEntry ze = es.nextElement();
-                File newFile = new File(dir, ze.getName());
+                final ZipEntry ze = es.nextElement();
+                final File newFile = new File(dir, ze.getName());
                 // Checks for Zip Slip Vulnerability (CWE-22 / path traversal)
                 if (!newFile.toPath().normalize().startsWith(dirPath)) {
                     throw new IOException("Bad zip entry - Invalid or malicious file, potential CWE-22 attack");
                 }
                 if (ze.isDirectory()) {
                     Utils.mkDirs(newFile);
-                } else try (InputStream is = zf.getInputStream(ze)) {
-                    Files.copy(is, newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                }
+                } else {
+					try (InputStream is = zf.getInputStream(ze)) {
+					    Files.copy(is, newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					}
+				}
             }
         }
     }
