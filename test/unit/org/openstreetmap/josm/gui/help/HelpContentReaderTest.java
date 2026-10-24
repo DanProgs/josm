@@ -26,7 +26,7 @@ class HelpContentReaderTest {
      */
     @Test
     void testFetchHelpTopicContentNominal() throws HelpContentReaderException {
-        String res = new HelpContentReader(HelpUtil.getWikiBaseUrl()).fetchHelpTopicContent(HelpBrowserTest.URL_1, false);
+        final String res = new HelpContentReader(HelpUtil.getWikiBaseUrl()).fetchHelpTopicContent(HelpBrowserTest.URL_1, false);
         assertFalse(res.isBlank());
     }
 }

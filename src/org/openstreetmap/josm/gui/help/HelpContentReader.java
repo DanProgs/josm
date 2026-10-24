@@ -4,6 +4,8 @@ package org.openstreetmap.josm.gui.help;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 
 import org.openstreetmap.josm.tools.HttpClient;
@@ -37,22 +39,39 @@ public class HelpContentReader extends WikiReader {
      * @param dotest if {@code true}, checks if help content is empty
      * @return the content, filtered and transformed for being displayed in the internal help browser
      * @throws HelpContentReaderException if problem occurs
-     * @throws MissingHelpContentException if this helpTopicUrl doesn't point to an existing Wiki help page
      */
     public String fetchHelpTopicContent(String helpTopicUrl, boolean dotest) throws HelpContentReaderException {
-        if (helpTopicUrl == null)
-            throw new MissingHelpContentException("helpTopicUrl is null");
+        if (helpTopicUrl == null || helpTopicUrl.isBlank()) {
+        	throw new HelpContentReaderException(new IllegalArgumentException("helpTopicUrl is null or blank"), 0);
+		}
         HttpClient.Response con = null;
         try {
-            URL u = new URL(helpTopicUrl);
+            final URL u = new URI(helpTopicUrl).toURL();
             con = HttpClient.create(u).connect();
+            
             try (BufferedReader in = con.getContentReader()) {
                 return prepareHelpContent(in, dotest, u);
             }
-        } catch (MalformedURLException e) {
+        } catch (MalformedURLException | URISyntaxException e) {
             throw new HelpContentReaderException(e, 0);
         } catch (IOException e) {
-            throw new HelpContentReaderException(e, con != null ? con.getResponseCode() : 0);
+        	int responseCode = 0;
+            if (con != null) {
+                try {
+                    responseCode = con.getResponseCode();
+                } catch (Exception ignored) {
+                	// do nothing
+                }
+            }
+            throw new HelpContentReaderException(e, responseCode);
+        } finally {
+        	if (con instanceof AutoCloseable) {
+                try {
+                    ((AutoCloseable) con).close();
+                } catch (Exception ignored) {
+                    // do nothing
+                }
+        	}
         }
     }
 
@@ -78,8 +97,9 @@ public class HelpContentReader extends WikiReader {
         } catch (IOException e) {
             throw new HelpContentReaderException(e, 0);
         }
-        if (dotest && s.isEmpty())
-            throw new MissingHelpContentException(s);
+        if (dotest && s.isEmpty()) {
+			throw new MissingHelpContentException(s);
+		}
         return s;
     }
 }
