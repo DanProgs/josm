@@ -15,6 +15,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -126,7 +127,7 @@ public class ImageryProvidersPanel extends JPanel {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean
                 isSelected, boolean hasFocus, int row, int column) {
-            JLabel label = (JLabel) super.getTableCellRendererComponent(
+            final JLabel label = (JLabel) super.getTableCellRendererComponent(
                     table, value, isSelected, hasFocus, row, column);
             GuiHelper.setBackgroundReadable(label, UIManager.getColor("Table.background"));
             if (value != null) { // Fix #8159
@@ -158,8 +159,8 @@ public class ImageryProvidersPanel extends JPanel {
         @SuppressWarnings("unchecked")
         public final Component getTableCellRendererComponent(JTable table, Object value, boolean
                 isSelected, boolean hasFocus, int row, int column) {
-            T obj = (T) value;
-            JLabel label = (JLabel) super.getTableCellRendererComponent(
+            final T obj = (T) value;
+            final JLabel label = (JLabel) super.getTableCellRendererComponent(
                     table, mapper.apply(obj), isSelected, hasFocus, row, column);
             GuiHelper.setBackgroundReadable(label,
                     isSelected ? UIManager.getColor("Table.selectionBackground") : UIManager.getColor("Table.background"));
@@ -215,7 +216,7 @@ public class ImageryProvidersPanel extends JPanel {
         activeTable = new JTable(activeModel) {
             @Override
             public String getToolTipText(MouseEvent e) {
-                java.awt.Point p = e.getPoint();
+                final java.awt.Point p = e.getPoint();
                 try {
                     return activeModel.getValueAt(rowAtPoint(p), columnAtPoint(p)).toString();
                 } catch (ArrayIndexOutOfBoundsException ex) {
@@ -251,15 +252,15 @@ public class ImageryProvidersPanel extends JPanel {
         mod.getColumn(1).setCellRenderer(new ImageryURLTableCellRenderer(layerInfo.getAllDefaultLayers()));
         mod.getColumn(0).setPreferredWidth(200);
 
-        RemoveEntryAction remove = new RemoveEntryAction();
+        final RemoveEntryAction remove = new RemoveEntryAction();
         activeTable.getSelectionModel().addListSelectionListener(remove);
 
         add(new JLabel(tr("Available default entries:")), GBC.std().insets(5, 5, 0, 0));
         add(new JLabel(tr("Boundaries of selected imagery entries:")), GBC.eol().insets(5, 5, 0, 0));
 
         // Add default item list
-        JPanel defaultPane = new JPanel(new GridBagLayout());
-        JScrollPane scrolldef = new JScrollPane(defaultTable);
+        final JPanel defaultPane = new JPanel(new GridBagLayout());
+        final JScrollPane scrolldef = new JScrollPane(defaultTable);
         defaultPane.add(defaultFilter, GBC.eol().insets(0, 0, 0, 0).fill(GridBagConstraints.HORIZONTAL));
         defaultPane.add(scrolldef, GBC.eol().insets(0, 0, 0, 0).fill(GridBagConstraints.BOTH));
         add(defaultPane, GBC.std().fill(GridBagConstraints.BOTH).weight(1.0, 0.6).insets(5, 0, 0, 0));
@@ -282,14 +283,14 @@ public class ImageryProvidersPanel extends JPanel {
         defaultTableListener = new DefListSelectionListener();
         defaultTable.getSelectionModel().addListSelectionListener(defaultTableListener);
 
-        HtmlPanel help = new HtmlPanel(tr("New default entries can be added in the <a href=\"{0}\">Wiki</a>.",
+        final HtmlPanel help = new HtmlPanel(tr("New default entries can be added in the <a href=\"{0}\">Wiki</a>.",
             Config.getUrls().getJOSMWebsite()+"/wiki/Maps"));
         help.enableClickableHyperlinks();
         add(help, GBC.eol().insets(5, 0, 0, 0).fill(GBC.HORIZONTAL));
 
-        ActivateAction activate = new ActivateAction();
+        final ActivateAction activate = new ActivateAction();
         defaultTable.getSelectionModel().addListSelectionListener(activate);
-        JButton btnActivate = new JButton(activate);
+        final JButton btnActivate = new JButton(activate);
 
         middleToolbar = new JToolBar(JToolBar.HORIZONTAL);
         middleToolbar.setFloatable(false);
@@ -301,9 +302,9 @@ public class ImageryProvidersPanel extends JPanel {
 
         add(Box.createHorizontalGlue(), GBC.eol().fill(GridBagConstraints.HORIZONTAL));
 
-        JPanel activePanel = new JPanel(new BorderLayout());
+        final JPanel activePanel = new JPanel(new BorderLayout());
         activePanel.add(new JLabel(tr("Selected entries:")), BorderLayout.NORTH);
-        JScrollPane scroll = new JScrollPane(activeTable);
+        final JScrollPane scroll = new JScrollPane(activeTable);
         activePanel.add(scroll, BorderLayout.CENTER);
 
         activeToolbar = new JToolBar(JToolBar.VERTICAL);
@@ -364,18 +365,18 @@ public class ImageryProvidersPanel extends JPanel {
          * @param i model index
          */
         private void updateBoundsAndShapes(int i) {
-            ImageryBounds bounds = defaultModel.getRow(i).getBounds();
+            final ImageryBounds bounds = defaultModel.getRow(i).getBounds();
             if (bounds != null) {
-                int viewIndex = defaultTable.convertRowIndexToView(i);
-                List<Shape> shapes = bounds.getShapes();
+                final int viewIndex = defaultTable.convertRowIndexToView(i);
+                final List<Shape> shapes = bounds.getShapes();
                 if (!Utils.isEmpty(shapes)) {
                     if (defaultTable.getSelectionModel().isSelectedIndex(viewIndex)) {
                         if (!mapPolygons.containsKey(i)) {
-                            List<MapPolygon> list = new ArrayList<>();
+                            final List<MapPolygon> list = new ArrayList<>();
                             mapPolygons.put(i, list);
                             // Add new map polygons
                             for (Shape shape : shapes) {
-                                MapPolygon polygon = new MapPolygonImpl(shape.getPoints());
+                                final MapPolygon polygon = new MapPolygonImpl(shape.getPoints());
                                 list.add(polygon);
                                 defaultMap.addMapPolygon(polygon);
                             }
@@ -392,9 +393,9 @@ public class ImageryProvidersPanel extends JPanel {
                     if (defaultTable.getSelectionModel().isSelectedIndex(viewIndex)) {
                         if (!mapRectangles.containsKey(i)) {
                             // Add new map rectangle
-                            Coordinate topLeft = new Coordinate(bounds.getMaxLat(), bounds.getMinLon());
-                            Coordinate bottomRight = new Coordinate(bounds.getMinLat(), bounds.getMaxLon());
-                            MapRectangle rectangle = new MapRectangleImpl(topLeft, bottomRight);
+                            final Coordinate topLeft = new Coordinate(bounds.getMaxLat(), bounds.getMinLon());
+                            final Coordinate bottomRight = new Coordinate(bounds.getMinLat(), bounds.getMaxLon());
+                            final MapRectangle rectangle = new MapRectangleImpl(topLeft, bottomRight);
                             mapRectangles.put(i, rectangle);
                             defaultMap.addMapRectangle(rectangle);
                         }
@@ -409,8 +410,8 @@ public class ImageryProvidersPanel extends JPanel {
 
         private <T> void doCleanupResidualBounds(Map<Integer, T> map, Consumer<T> removalEffect) {
             for (Iterator<Entry<Integer, T>> it = map.entrySet().iterator(); it.hasNext();) {
-                Entry<Integer, T> e = it.next();
-                int viewIndex = defaultTable.convertRowIndexToView(e.getKey());
+                final Entry<Integer, T> e = it.next();
+                final int viewIndex = defaultTable.convertRowIndexToView(e.getKey());
                 if (!defaultTable.getSelectionModel().isSelectedIndex(viewIndex)) {
                     it.remove();
                     removalEffect.accept(e.getValue());
@@ -479,9 +480,9 @@ public class ImageryProvidersPanel extends JPanel {
                 try {
                     activeModel.addRow(p.getImageryInfo());
                 } catch (IllegalArgumentException ex) {
-                    if (Utils.isEmpty(ex.getMessage()))
-                        throw ex;
-                    else {
+                    if (Utils.isEmpty(ex.getMessage())) {
+						throw ex;
+					} else {
                         JOptionPane.showMessageDialog(MainApplication.getMainFrame(),
                                 ex.getMessage(), tr("Error"),
                                 JOptionPane.ERROR_MESSAGE);
@@ -543,7 +544,7 @@ public class ImageryProvidersPanel extends JPanel {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            int[] lines = defaultTable.getSelectedRows();
+            final int[] lines = defaultTable.getSelectedRows();
             if (lines.length == 0) {
                 JOptionPane.showMessageDialog(
                         gui,
@@ -553,35 +554,40 @@ public class ImageryProvidersPanel extends JPanel {
                 return;
             }
 
-            Set<String> acceptedEulas = new HashSet<>();
+            final Set<String> acceptedEulas = new HashSet<>();
 
-            outer:
             for (int line : lines) {
-                ImageryInfo info = defaultModel.getRow(defaultTable.convertRowIndexToModel(line));
+                final ImageryInfo info = defaultModel.getRow(defaultTable.convertRowIndexToModel(line));
 
                 // Check if an entry with exactly the same values already exists
+                boolean alreadyExists = false;
                 for (int j = 0; j < activeModel.getRowCount(); j++) {
                     if (info.equalsBaseValues(activeModel.getRow(j))) {
                         // Select the already existing row so the user has
                         // some feedback in case an entry exists
                         activeTable.getSelectionModel().setSelectionInterval(j, j);
                         activeTable.scrollRectToVisible(activeTable.getCellRect(j, 0, true));
-                        continue outer;
+                        alreadyExists = true;
+                        break;
                     }
                 }
+                
+                if (alreadyExists) {
+                    continue;
+                }
 
-                String eulaURL = info.getEulaAcceptanceRequired();
+                final String eulaURL = info.getEulaAcceptanceRequired();
                 // If set and not already accepted, ask for EULA acceptance
                 if (eulaURL != null && !acceptedEulas.contains(eulaURL)) {
                     if (confirmEulaAcceptance(gui, eulaURL)) {
                         acceptedEulas.add(eulaURL);
                     } else {
-                        continue outer;
+                        continue;
                     }
                 }
 
                 activeModel.addRow(new ImageryInfo(info));
-                int lastLine = activeModel.getRowCount() - 1;
+                final int lastLine = activeModel.getRowCount() - 1;
                 activeTable.getSelectionModel().setSelectionInterval(lastLine, lastLine);
                 activeTable.scrollRectToVisible(activeTable.getCellRect(lastLine, 0, true));
             }
@@ -641,7 +647,7 @@ public class ImageryProvidersPanel extends JPanel {
          */
         public void addRow(ImageryInfo i) {
             layerInfo.add(i);
-            int p = getRowCount() - 1;
+            final int p = getRowCount() - 1;
             fireTableRowsInserted(p, p);
         }
 
@@ -658,7 +664,7 @@ public class ImageryProvidersPanel extends JPanel {
 
         @Override
         public Object getValueAt(int row, int column) {
-            ImageryInfo info = layerInfo.getLayers().get(row);
+            final ImageryInfo info = layerInfo.getLayers().get(row);
             switch (column) {
             case 0:
                 return info.getName();
@@ -671,8 +677,10 @@ public class ImageryProvidersPanel extends JPanel {
 
         @Override
         public void setValueAt(Object o, int row, int column) {
-            if (layerInfo.getLayers().size() <= row) return;
-            ImageryInfo info = layerInfo.getLayers().get(row);
+            if (layerInfo.getLayers().size() <= row) {
+				return;
+			}
+            final ImageryInfo info = layerInfo.getLayers().get(row);
             switch (column) {
             case 0:
                 info.setName((String) o);
@@ -731,7 +739,7 @@ public class ImageryProvidersPanel extends JPanel {
 
         @Override
         public Object getValueAt(int row, int column) {
-            ImageryInfo info = layerInfo.getAllDefaultLayers().get(row);
+            final ImageryInfo info = layerInfo.getAllDefaultLayers().get(row);
             switch (column) {
             case 0:
                 return Optional.ofNullable(info.getImageryCategory()).orElse(ImageryCategory.OTHER);
@@ -755,7 +763,7 @@ public class ImageryProvidersPanel extends JPanel {
     private static boolean confirmEulaAcceptance(PreferenceTabbedPane gui, String eulaUrl) {
         URL url;
         try {
-            url = new URL(eulaUrl.replaceAll("\\{lang}", LanguageInfo.getWikiLanguagePrefix()));
+            url = URI.create(eulaUrl.replaceAll("\\{lang}", LanguageInfo.getWikiLanguagePrefix())).toURL();
             JosmEditorPane htmlPane;
             try {
                 htmlPane = new JosmEditorPane(url);
@@ -763,7 +771,7 @@ public class ImageryProvidersPanel extends JPanel {
                 Logging.trace(e1);
                 // give a second chance with a default Locale 'en'
                 try {
-                    url = new URL(eulaUrl.replaceAll("\\{lang}", ""));
+                    url = URI.create(eulaUrl.replaceAll("\\{lang}", "")).toURL();
                     htmlPane = new JosmEditorPane(url);
                 } catch (IOException e2) {
                     Logging.debug(e2);
@@ -771,15 +779,16 @@ public class ImageryProvidersPanel extends JPanel {
                     return false;
                 }
             }
-            Box box = Box.createVerticalBox();
+            final Box box = Box.createVerticalBox();
             htmlPane.setEditable(false);
-            JScrollPane scrollPane = new JScrollPane(htmlPane);
+            final JScrollPane scrollPane = new JScrollPane(htmlPane);
             scrollPane.setPreferredSize(new Dimension(400, 400));
             box.add(scrollPane);
-            int option = JOptionPane.showConfirmDialog(MainApplication.getMainFrame(), box, tr("Please abort if you are not sure"),
+            final int option = JOptionPane.showConfirmDialog(MainApplication.getMainFrame(), box, tr("Please abort if you are not sure"),
                     JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (option == JOptionPane.YES_OPTION)
-                return true;
+            if (option == JOptionPane.YES_OPTION) {
+				return true;
+			}
         } catch (MalformedURLException e2) {
             JOptionPane.showMessageDialog(gui, tr("Malformed URL for the EULA licence: {0}", eulaUrl));
         }
