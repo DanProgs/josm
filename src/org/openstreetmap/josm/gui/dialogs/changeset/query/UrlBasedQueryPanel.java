@@ -9,8 +9,8 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -48,8 +48,8 @@ public class UrlBasedQueryPanel extends JPanel {
     }
 
     protected JPanel buildURLPanel() {
-        JPanel pnl = new JPanel(new GridBagLayout());
-        GridBagConstraints gc = new GridBagConstraints();
+        final JPanel pnl = new JPanel(new GridBagLayout());
+        final GridBagConstraints gc = new GridBagConstraints();
         gc.weightx = 0.0;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.insets = new Insets(0, 0, 0, 5);
@@ -84,8 +84,8 @@ public class UrlBasedQueryPanel extends JPanel {
     }
 
     protected JPanel buildHelpPanel() {
-        String apiUrl = OsmApi.getOsmApi().getBaseUrl();
-        HtmlPanel pnl = new HtmlPanel();
+        final String apiUrl = OsmApi.getOsmApi().getBaseUrl();
+        final HtmlPanel pnl = new HtmlPanel();
         pnl.setText(
                 "<html><body>"
                 + tr("Please enter or paste an URL to retrieve changesets from the OSM API.")
@@ -112,7 +112,7 @@ public class UrlBasedQueryPanel extends JPanel {
         setLayout(new GridBagLayout());
         setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        GridBagConstraints gc = new GridBagConstraints();
+        final GridBagConstraints gc = new GridBagConstraints();
         gc.weightx = 1.0;
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.insets = new Insets(0, 0, 10, 0);
@@ -135,18 +135,23 @@ public class UrlBasedQueryPanel extends JPanel {
     }
 
     protected static ChangesetQuery buildChangesetQuery(String text) {
-        URL url = null;
-        try {
-            url = new URL(text);
-        } catch (MalformedURLException e) {
+    	if (text == null || text.isBlank()) {
             return null;
         }
-        String path = url.getPath();
-        if (path == null || (!path.endsWith("/changesets") && !path.endsWith("/history")))
-            return null;
-
+    	
         try {
-            return ChangesetQuery.buildFromUrlQuery(url.getQuery());
+            final URI uri = new URI(text);
+            final String path = uri.getPath();
+
+            if (path == null || (!path.endsWith("/changesets") && !path.endsWith("/history"))) {
+                return null;
+            }
+
+            return ChangesetQuery.buildFromUrlQuery(uri.getQuery());
+
+        } catch (URISyntaxException e) {
+            // Ungültiges URL/URI-Format -> laut Methode als null behandeln
+            return null;
         } catch (ChangesetQueryUrlException e) {
             Logging.warn(e);
             return null;
@@ -160,7 +165,7 @@ public class UrlBasedQueryPanel extends JPanel {
      * @return the changeset query
      */
     public ChangesetQuery buildChangesetQuery() {
-        String value = tfUrl.getText().trim();
+        final String value = tfUrl.getText().trim();
         return buildChangesetQuery(value);
     }
 
@@ -176,21 +181,23 @@ public class UrlBasedQueryPanel extends JPanel {
      */
     class ChangetQueryUrlValidator implements DocumentListener {
         protected String getCurrentFeedback() {
-            String fb = (String) lblValid.getClientProperty("valid");
+            final String fb = (String) lblValid.getClientProperty("valid");
             return fb == null ? "none" : fb;
         }
 
         protected void feedbackValid() {
-            if ("valid".equals(getCurrentFeedback()))
-                return;
+            if ("valid".equals(getCurrentFeedback())) {
+				return;
+			}
             lblValid.setIcon(ImageProvider.get("misc", "green_check"));
             lblValid.setToolTipText(null);
             lblValid.putClientProperty("valid", "valid");
         }
 
         protected void feedbackInvalid() {
-            if ("invalid".equals(getCurrentFeedback()))
-                return;
+            if ("invalid".equals(getCurrentFeedback())) {
+				return;
+			}
             lblValid.setIcon(ImageProvider.get("warning-small"));
             lblValid.setToolTipText(tr("This changeset query URL is invalid"));
             lblValid.putClientProperty("valid", "invalid");
