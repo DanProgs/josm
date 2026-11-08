@@ -1188,7 +1188,7 @@ public class TagChecker extends TagTest implements TaggingPresetListener {
                         continue;
                     }
                     maxPresetValueLen = Math.max(maxPresetValueLen, possibleVal.length());
-                    if (harmonizedValue.length() < 3 && possibleVal.length() >= harmonizedValue.length() + MAX_LEVENSHTEIN_DISTANCE) {
+                    if (harmonizedValue != null && harmonizedValue.length() < 3 && possibleVal.length() >= harmonizedValue.length() + MAX_LEVENSHTEIN_DISTANCE) {
                         // don't suggest fix value when given value is short and lengths are too different
                         // for example surface=u would result in surface=mud
                         continue;
