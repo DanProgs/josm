@@ -60,7 +60,24 @@ public class MapCSSRule implements Comparable<MapCSSRule> {
 
     @Override
     public int compareTo(MapCSSRule o) {
-        return declaration.idx - o.declaration.idx;
+        return Integer.compare(this.declaration.idx, o.declaration.idx);
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        final MapCSSRule other = (MapCSSRule) obj;
+        return this.declaration.idx == other.declaration.idx;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(this.declaration.idx);
     }
 
     @Override
