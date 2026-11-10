@@ -147,7 +147,7 @@ class TagCheckerTest {
     @Test
     void testIgnoredTagsNotInPresets() throws IOException {
         new TagChecker().initialize();
-        List<String> errors = TagChecker.getIgnoredTags().stream()
+        final List<String> errors = TagChecker.getIgnoredTags().stream()
                 .filter(tag -> TagChecker.isTagInPresets(tag.getKey(), tag.getValue()))
                 .map(Tag::toString)
                 .collect(Collectors.toList());
@@ -270,7 +270,7 @@ class TagCheckerTest {
      */
     @Test
     void testTicket19519() throws IOException {
-        List<TestError> errors = test(OsmUtils.createPrimitive("node amenity=restaurant cuisine=bavarian;beef_bowl"));
+        final List<TestError> errors = test(OsmUtils.createPrimitive("node amenity=restaurant cuisine=bavarian;beef_bowl"));
         assertEquals(0, errors.size());
     }
 
@@ -374,4 +374,105 @@ class TagCheckerTest {
             originalBusStop.data.remove(duplicateKey);
         }
     }
+    
+    /**
+     * Tests value harmonization (e.g. case normalization and trimming) resulting in a valid preset match.
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    @Test
+    void testTryGuessHarmonizedMatch() throws IOException {
+        final List<TestError> errors = test(OsmUtils.createPrimitive("way highway=\"Residential \""));
+        assertEquals(1, errors.size());
+        final TestError error = errors.get(0);
+        assertEquals(Severity.WARNING, error.getSeverity());
+        assertEquals(TagChecker.MISSPELLED_VALUE, error.getCode());
+        assertTrue(error.getDescription().contains("maybe 'residential' is meant?"));
+    }
+
+    /**
+     * Tests a single unambiguous typo corrected via Levenshtein distance.
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    @Test
+    void testTryGuessSingleLevenshteinMatch() throws IOException {
+        final List<TestError> errors = test(OsmUtils.createPrimitive("way highway=residentail"));
+        assertEquals(1, errors.size());
+        final TestError error = errors.get(0);
+        assertEquals(Severity.WARNING, error.getSeverity());
+        assertEquals(TagChecker.MISSPELLED_VALUE, error.getCode());
+        assertTrue(error.getDescription().contains("maybe 'residential' is meant?"));
+    }
+
+    /**
+     * Tests a misspelled value that has multiple equally close preset candidates.
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    @Test
+    void testTryGuessMultipleLevenshteinMatches() throws IOException {
+        // "radh" (length 4) has a Levenshtein distance of 2 to both "path" and "road"
+        final List<TestError> errors = test(OsmUtils.createPrimitive("way highway=radh"));
+        assertEquals(1, errors.size());
+        final TestError error = errors.get(0);
+        assertEquals(Severity.WARNING, error.getSeverity());
+        assertEquals(TagChecker.MISSPELLED_VALUE_NO_FIX, error.getCode());
+        assertTrue(error.getDescription().contains("maybe one of ["));
+    }
+
+    /**
+     * Tests that short values do not trigger false typo suggestions when length differences are too large.
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    @Test
+    void testTryGuessShortValueGuard() throws IOException {
+        final List<TestError> errors = test(OsmUtils.createPrimitive("way surface=u"));
+        assertEquals(1, errors.size());
+        final TestError error = errors.get(0);
+        assertEquals(Severity.OTHER, error.getSeverity());
+        assertEquals(TagChecker.INVALID_VALUE, error.getCode());
+    }
+
+    /**
+     * Tests that short values with no matching characters are reported as unknown instead of misspelled.
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    @Test
+    void testTryGuessCompletelyDifferentShortValue() throws IOException {
+        final List<TestError> errors = test(OsmUtils.createPrimitive("node amenity=parking fee=10"));
+        assertEquals(1, errors.size());
+        final TestError error = errors.get(0);
+        assertEquals(Severity.OTHER, error.getSeverity());
+        assertEquals(TagChecker.INVALID_VALUE, error.getCode());
+    }
+
+    /**
+     * Tests an unknown tag value that does not match any preset within the allowed Levenshtein distance.
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    @Test
+    void testTryGuessUnknownValue() throws IOException {
+        final List<TestError> errors = test(OsmUtils.createPrimitive("way highway=completely_unknown_value"));
+        assertEquals(1, errors.size());
+        final TestError error = errors.get(0);
+        assertEquals(Severity.OTHER, error.getSeverity());
+        assertEquals(TagChecker.INVALID_VALUE, error.getCode());
+    }
+
+    /**
+     * Tests that keys listed in {@code ignoreForLevenshtein} are skipped during typo detection.
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    @Test
+    void testTryGuessIgnoredKey() throws IOException {
+        final List<TestError> errors = test(OsmUtils.createPrimitive("way highway=residential name=Residentail"));
+        assertTrue(errors.isEmpty());
+    }
+    
+    
 }
