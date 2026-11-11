@@ -464,14 +464,27 @@ class TagCheckerTest {
     }
 
     /**
-     * Tests that keys listed in {@code ignoreForLevenshtein} are skipped during typo detection.
+     * Non-regression test for keys in {@code ignoreForLevenshtein}: ensures typo detection
+     * is skipped for numerical preset keys while still active for regular preset keys.
      *
      * @throws IOException if an I/O error occurs
      */
     @Test
     void testTryGuessIgnoredKey() throws IOException {
-        final List<TestError> errors = test(OsmUtils.createPrimitive("way highway=residential name=Residentail"));
-        assertTrue(errors.isEmpty());
+        // 'couplings' has numerical preset values (e.g. 1, 2) and is in ignoreForLevenshtein.
+        // Value "11" has Levenshtein distance 1 to "1", so no typo suggestion should be made.
+        final List<TestError> ignoredErrors = test(OsmUtils.createPrimitive("node emergency=fire_hydrant couplings=11"));
+        assertEquals(1, ignoredErrors.size());
+        assertEquals("Presets do not contain property value", ignoredErrors.get(0).getMessage());
+        assertEquals("Value '11' for key 'couplings' not in presets.", ignoredErrors.get(0).getDescription());
+
+        // Counter-check: a regular key on the same preset object triggers a Levenshtein typo suggestion.
+        final List<TestError> typoErrors = test(OsmUtils.createPrimitive(
+                "node emergency=fire_hydrant fire_hydrant:type=pilllar"));
+        assertEquals(1, typoErrors.size());
+        assertEquals("Unknown property value", typoErrors.get(0).getMessage());
+        assertEquals("Value 'pilllar' for key 'fire_hydrant:type' is unknown, maybe 'pillar' is meant?",
+                typoErrors.get(0).getDescription());
     }
     
     
