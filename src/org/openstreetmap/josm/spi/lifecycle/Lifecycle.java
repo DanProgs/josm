@@ -66,36 +66,39 @@ public final class Lifecycle {
      * @param initSequence Initialization sequence
      * @since 14139
      */
-    // PMD wasn't detecting that we were trying to shutdown the ExecutorService
-    @SuppressWarnings("PMD.CloseResource")
     public static void initialize(InitializationSequence initSequence) {
         // Initializes tasks that must be run before parallel tasks
         runInitializationTasks(initSequence.beforeInitializationTasks());
 
         // Initializes tasks to be executed (in parallel) by a ExecutorService
+        final ExecutorService service = Executors.newFixedThreadPool(
+                Runtime.getRuntime().availableProcessors(), Utils.newThreadFactory("main-init-%d", Thread.NORM_PRIORITY));
         try {
-            ExecutorService service = Executors.newFixedThreadPool(
-                    Runtime.getRuntime().availableProcessors(), Utils.newThreadFactory("main-init-%d", Thread.NORM_PRIORITY));
             for (Future<Void> i : service.invokeAll(initSequence.parallelInitializationTasks())) {
                 i.get();
             }
             // asynchronous initializations to be completed eventually
             initSequence.asynchronousRunnableTasks().forEach(x -> {
-                if (x != null) service.submit(x);
+                if (x != null) {
+                    service.submit(x);
+                }
             });
             initSequence.asynchronousCallableTasks().forEach(x -> {
-                if (x != null) service.submit(x);
+                if (x != null) {
+                    service.submit(x);
+                }
             });
-            try {
-                service.shutdown();
-            } catch (SecurityException e) {
-                Logging.log(Logging.LEVEL_ERROR, "Unable to shutdown executor service", e);
-            }
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new JosmRuntimeException(ex);
         } catch (ExecutionException ex) {
             throw new JosmRuntimeException(ex);
+        } finally {
+            try {
+                service.shutdown();
+            } catch (SecurityException e) {
+                Logging.log(Logging.LEVEL_ERROR, "Unable to shutdown executor service", e);
+            }
         }
 
         // Initializes tasks that must be run after parallel tasks
