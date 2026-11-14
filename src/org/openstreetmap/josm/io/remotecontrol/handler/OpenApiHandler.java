@@ -4,14 +4,12 @@ package org.openstreetmap.josm.io.remotecontrol.handler;
 
 import static org.openstreetmap.josm.tools.I18n.tr;
 
-import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObjectBuilder;
-
 import org.openstreetmap.josm.data.preferences.JosmUrls;
 import org.openstreetmap.josm.io.remotecontrol.PermissionPrefWithDefault;
 import org.openstreetmap.josm.io.remotecontrol.RemoteControl;
@@ -30,10 +28,7 @@ public class OpenApiHandler extends RequestHandler {
 
     @Override
     protected void handleRequest() {
-        JsonObjectBuilder openapi = getOpenApi();
-        StringWriter stringWriter = new StringWriter();
-        Json.createWriter(stringWriter).write(openapi.build());
-        content = stringWriter.toString();
+        content = getOpenApi().build().toString();
         contentType = "application/json";
     }
 
@@ -52,14 +47,14 @@ public class OpenApiHandler extends RequestHandler {
     }
 
     private JsonObjectBuilder getHandlers() {
-        JsonObjectBuilder paths = Json.createObjectBuilder();
+        final JsonObjectBuilder paths = Json.createObjectBuilder();
         RequestProcessor.getHandlersInfo(null)
                 .forEach(handler -> paths.add("/" + handler.getCommand(), getHandler(handler)));
         return paths;
     }
 
     private JsonObjectBuilder getHandler(RequestHandler handler) {
-        JsonArrayBuilder parameters = Json.createArrayBuilder();
+        final JsonArrayBuilder parameters = Json.createArrayBuilder();
         Stream.concat(
                 Arrays.stream(handler.getMandatoryParams()),
                 Arrays.stream(handler.getOptionalParams())
