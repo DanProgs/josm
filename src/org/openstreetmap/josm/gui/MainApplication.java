@@ -347,7 +347,7 @@ public class MainApplication {
     }
 
     private static void askUpdate(String title, String update, String property, String icon, StringBuilder content, String url) {
-        ExtendedDialog ed = new ExtendedDialog(mainFrame, title, tr("OK"), update, tr("Cancel"));
+        final ExtendedDialog ed = new ExtendedDialog(mainFrame, title, tr("OK"), update, tr("Cancel"));
         // Check if the dialog has not already been permanently hidden by user
         if (!ed.toggleEnable(property).toggleCheckState()) {
             ed.setButtonIcons("ok", icon, "cancel").setCancelButton(3);
@@ -374,7 +374,7 @@ public class MainApplication {
      * @since 12270
      */
     public static void askUpdateJava(String updVersion, String url, String eolDate, boolean major) {
-        StringBuilder content = new StringBuilder(256);
+        final StringBuilder content = new StringBuilder(256);
         content.append(tr("You are running version {0} of Java.",
                 "<b>"+getSystemProperty("java.version")+"</b>")).append("<br><br>");
         if ("Sun Microsystems Inc.".equals(getSystemProperty("java.vendor")) && !PlatformManager.getPlatform().isOpenJDK()) {
@@ -606,12 +606,13 @@ public class MainApplication {
      * @since 12639 (as a replacement to {@code Main.registerActionShortcut})
      */
     public static void registerActionShortcut(Action action, Shortcut shortcut) {
-        KeyStroke keyStroke = shortcut.getKeyStroke();
-        if (keyStroke == null)
+        final KeyStroke keyStroke = shortcut.getKeyStroke();
+        if (keyStroke == null) {
             return;
+        }
 
-        InputMap inputMap = contentPanePrivate.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-        Object existing = inputMap.get(keyStroke);
+        final InputMap inputMap = contentPanePrivate.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        final Object existing = inputMap.get(keyStroke);
         if (existing != null && !existing.equals(action)) {
             Logging.info(String.format("Keystroke %s is already assigned to %s, will be overridden by %s", keyStroke, existing, action));
         }
@@ -656,12 +657,14 @@ public class MainApplication {
      * @since 12639 (as a replacement to {@code Main.getRegisteredActionShortcut})
      */
     public static Action getRegisteredActionShortcut(Shortcut shortcut) {
-        KeyStroke keyStroke = shortcut.getKeyStroke();
-        if (keyStroke == null)
+        final KeyStroke keyStroke = shortcut.getKeyStroke();
+        if (keyStroke == null) {
             return null;
-        Object action = contentPanePrivate.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).get(keyStroke);
-        if (action instanceof Action)
+        }
+        final Object action = contentPanePrivate.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).get(keyStroke);
+        if (action instanceof Action) {
             return (Action) action;
+        }
         return null;
     }
 
@@ -753,10 +756,10 @@ public class MainApplication {
         commandLineArgs = Arrays.asList(Arrays.copyOf(argArray, argArray.length));
 
         if (argArray.length > 0) {
-            String moduleStr = argArray[0];
+            final String moduleStr = argArray[0];
             for (CLIModule module : cliModules) {
                 if (Objects.equals(moduleStr, module.getActionKeyword())) {
-                   String[] argArrayCdr = Arrays.copyOfRange(argArray, 1, argArray.length);
+                   final String[] argArrayCdr = Arrays.copyOfRange(argArray, 1, argArray.length);
                    module.processArguments(argArrayCdr);
                    return;
                 }
@@ -777,13 +780,13 @@ public class MainApplication {
             BugReportSender.setBugReportSendingHandler(new DefaultBugReportSendingHandler());
         }
 
-        Level logLevel = args.getLogLevel();
+        final Level logLevel = args.getLogLevel();
         Logging.setLogLevel(logLevel);
         if (!args.hasOption(Option.VERSION) && !args.hasOption(Option.STATUS_REPORT) && !args.showHelp()) {
             Logging.info(tr("Log level is at {0} ({1}, {2})", logLevel.getLocalizedName(), logLevel.getName(), logLevel.intValue()));
         }
 
-        Optional<String> language = args.getSingle(Option.LANGUAGE);
+        final Optional<String> language = args.getSingle(Option.LANGUAGE);
         I18n.set(language.orElse(null));
 
         // JEP 486 (Java 24) now causes exceptions to be thrown. The security manager is terminally deprecated.
@@ -819,7 +822,7 @@ public class MainApplication {
         // call the really early hook before we do anything else
         PlatformManager.getPlatform().preStartupHook();
 
-        Preferences prefs = Preferences.main();
+        final Preferences prefs = Preferences.main();
         Config.setPreferencesInstance(prefs);
         Config.setBaseDirectoriesProvider(JosmBaseDirectories.getInstance());
         Config.setUrlsProvider(JosmUrls.getInstance());
@@ -837,7 +840,7 @@ public class MainApplication {
             return;
         }
 
-        boolean skipLoadingPlugins = args.hasOption(Option.SKIP_PLUGINS);
+        final boolean skipLoadingPlugins = args.hasOption(Option.SKIP_PLUGINS);
         if (skipLoadingPlugins) {
             Logging.info(tr("Plugin loading skipped"));
         }
@@ -892,7 +895,7 @@ public class MainApplication {
 
         Handler.install();
 
-        WindowGeometry geometry = WindowGeometry.mainWindow(WindowGeometry.PREF_KEY_GUI_GEOMETRY,
+        final WindowGeometry geometry = WindowGeometry.mainWindow(WindowGeometry.PREF_KEY_GUI_GEOMETRY,
                 args.getSingle(Option.GEOMETRY).orElse(null),
                 !args.hasOption(Option.NO_MAXIMIZE) && Config.getPref().getBoolean("gui.maximized", false));
         final MainFrame mainFrame = createMainFrame(geometry);
@@ -908,10 +911,10 @@ public class MainApplication {
         mainPanel = mainFrame.getPanel();
 
         if (args.hasOption(Option.LOAD_PREFERENCES)) {
-            XMLCommandProcessor config = new XMLCommandProcessor(prefs);
+            final XMLCommandProcessor config = new XMLCommandProcessor(prefs);
             for (String i : args.get(Option.LOAD_PREFERENCES)) {
                 try {
-                    URL url = i.contains(":/") ? new URL(i) : Paths.get(i).toUri().toURL();
+                    final URL url = i.contains(":/") ? new URL(i) : Paths.get(i).toUri().toURL();
                     Logging.info("Reading preferences from " + url);
                     try (InputStream is = Utils.openStream(url)) {
                         config.openAndReadXML(is);
@@ -1017,7 +1020,7 @@ public class MainApplication {
             Config.getPref().put(PREF_STARTUP_FAILURE_COUNTER, null);
         });
 
-        boolean maximized = Config.getPref().getBoolean("gui.maximized", false);
+        final boolean maximized = Config.getPref().getBoolean("gui.maximized", false);
         if ((!args.hasOption(Option.NO_MAXIMIZE) && maximized) || args.hasOption(Option.MAXIMIZE)) {
             mainFrame.setMaximized(true);
         }
@@ -1119,7 +1122,7 @@ public class MainApplication {
         FileWatcher.registerLoader(SourceType.TAGCHECKER_RULE, MapCSSTagChecker::reloadRule);
         OsmUrlToBounds.setMapSizeSupplier(() -> {
             if (isDisplayingMapView()) {
-                MapView mapView = getMap().mapView;
+                final MapView mapView = getMap().mapView;
                 return new Dimension(mapView.getWidth(), mapView.getHeight());
             } else {
                 return GuiHelper.getScreenSize();
@@ -1133,8 +1136,8 @@ public class MainApplication {
     // We want to catch all exceptions here to reset LaF to defaults and report it.
     @SuppressWarnings("squid:S2221")
     static void setupUIManager() {
-        String defaultlaf = PlatformManager.getPlatform().getDefaultStyle();
-        String laf = LafPreference.LAF.get();
+        final String defaultlaf = PlatformManager.getPlatform().getDefaultStyle();
+        final String laf = LafPreference.LAF.get();
         try {
             UIManager.setLookAndFeel(laf);
         } catch (final NoClassDefFoundError | ClassNotFoundException e) {
@@ -1269,7 +1272,7 @@ public class MainApplication {
                 }
             }
         }
-        Set<OnlineResource> offline = NetworkManager.getOfflineResources();
+        final Set<OnlineResource> offline = NetworkManager.getOfflineResources();
         if (!offline.isEmpty()) {
             Logging.warn(trn("JOSM is running in offline mode. This resource will not be available: {0}",
                     "JOSM is running in offline mode. These resources will not be available: {0}",
@@ -1285,7 +1288,7 @@ public class MainApplication {
         if ("auto".equals(Config.getPref().get("prefer.ipv6", "auto"))) {
             new Thread((Runnable) () -> { /* this may take some time (DNS, Connect) */
                 boolean hasv6 = false;
-                boolean wasv6 = Config.getPref().getBoolean("validated.ipv6", false);
+                final boolean wasv6 = Config.getPref().getBoolean("validated.ipv6", false);
                 try {
                     /* Use the check result from last run of the software, as after the test, value
                        changes have no effect anymore */
@@ -1342,9 +1345,9 @@ public class MainApplication {
      * @return the complete download task (including post-download handler)
      */
     static List<Future<?>> downloadFromParamBounds(final boolean rawGps, Bounds b) {
-        DownloadTask task = rawGps ? new DownloadGpsTask() : new DownloadOsmTask();
+        final DownloadTask task = rawGps ? new DownloadGpsTask() : new DownloadOsmTask();
         // asynchronously launch the download task ...
-        Future<?> future = task.download(new DownloadParams().withNewLayer(true), b, null);
+        final Future<?> future = task.download(new DownloadParams().withNewLayer(true), b, null);
         // ... and the continuation when the download is finished (this will wait for the download to finish)
         return Collections.singletonList(MainApplication.worker.submit(new PostDownloadHandler(task, future)));
     }
@@ -1355,8 +1358,8 @@ public class MainApplication {
      * @return the list of submitted tasks
      */
     static List<Future<?>> postConstructorProcessCmdLine(ProgramArguments args) {
-        List<Future<?>> tasks = new ArrayList<>();
-        List<File> fileList = new ArrayList<>();
+        final List<Future<?>> tasks = new ArrayList<>();
+        final List<File> fileList = new ArrayList<>();
         for (String s : args.get(Option.DOWNLOAD)) {
             tasks.addAll(DownloadParamType.paramType(s).download(s, fileList));
         }
@@ -1407,10 +1410,10 @@ public class MainApplication {
 
         private static void handleAutosave() {
             if (Boolean.TRUE.equals(AutosaveTask.PROP_AUTOSAVE_ENABLED.get())) {
-                AutosaveTask autosaveTask = new AutosaveTask();
-                List<File> unsavedLayerFiles = autosaveTask.getUnsavedLayersFiles();
+                final AutosaveTask autosaveTask = new AutosaveTask();
+                final List<File> unsavedLayerFiles = autosaveTask.getUnsavedLayersFiles();
                 if (!unsavedLayerFiles.isEmpty()) {
-                    ExtendedDialog dialog = new ExtendedDialog(
+                    final ExtendedDialog dialog = new ExtendedDialog(
                             mainFrame,
                             tr("Unsaved osm data"),
                             tr("Restore"), tr("Cancel"), tr("Discard")
@@ -1420,7 +1423,7 @@ public class MainApplication {
                                     "JOSM found {0} unsaved osm data layers. ", unsavedLayerFiles.size(), unsavedLayerFiles.size()) +
                                     tr("It looks like JOSM crashed last time. Would you like to restore the data?"));
                     dialog.setButtonIcons("ok", "cancel", "dialogs/delete");
-                    int selection = dialog.showDialog().getValue();
+                    final int selection = dialog.showDialog().getValue();
                     if (selection == 1) {
                         autosaveTask.recoverUnsavedLayers();
                     } else if (selection == 3) {
@@ -1437,7 +1440,7 @@ public class MainApplication {
 
         private static boolean handleNetworkOrProxyErrors(boolean hasErrors, String title, String message) {
             if (hasErrors) {
-                ExtendedDialog ed = new ExtendedDialog(
+                final ExtendedDialog ed = new ExtendedDialog(
                         mainFrame, title,
                         tr("Change proxy settings"), tr("Cancel"));
                 ed.setButtonIcons("preference", "cancel").setCancelButton(2);
@@ -1466,10 +1469,10 @@ public class MainApplication {
         }
 
         private static boolean handleNetworkErrors() {
-            Map<String, Throwable> networkErrors = NetworkManager.getNetworkErrors();
-            boolean condition = !networkErrors.isEmpty();
+            final Map<String, Throwable> networkErrors = NetworkManager.getNetworkErrors();
+            final boolean condition = !networkErrors.isEmpty();
             if (condition) {
-                Set<String> errors = networkErrors.values().stream()
+                final Set<String> errors = networkErrors.values().stream()
                         .map(Throwable::toString)
                         .collect(Collectors.toCollection(TreeSet::new));
                 return handleNetworkOrProxyErrors(condition, tr("Network errors occurred"),
@@ -1490,22 +1493,28 @@ public class MainApplication {
     private static final class DefaultNativeOsCallback implements NativeOsCallback {
         @Override
         public void openFiles(List<File> files) {
-            Executors.newSingleThreadExecutor(Utils.newThreadFactory("openFiles-%d", Thread.NORM_PRIORITY)).submit(
-                    new OpenFileTask(files, null) {
-                @Override
-                protected void realRun() throws SAXException, IOException, OsmTransferException {
-                    // Wait for JOSM startup is advanced enough to load a file
-                    while (mainFrame == null || !mainFrame.isVisible()) {
-                        try {
-                            Thread.sleep(25);
-                        } catch (InterruptedException e) {
-                            Logging.warn(e);
-                            Thread.currentThread().interrupt();
+            final ExecutorService executor = Executors.newSingleThreadExecutor(
+                    Utils.newThreadFactory("openFiles-%d", Thread.NORM_PRIORITY));
+            try {
+                executor.submit(new OpenFileTask(files, null) {
+                    @Override
+                    protected void realRun() throws SAXException, IOException, OsmTransferException {
+                        // Wait for JOSM startup is advanced enough to load a file
+                        while (mainFrame == null || !mainFrame.isVisible()) {
+                            try {
+                                Thread.sleep(25);
+                            } catch (InterruptedException e) {
+                                Logging.warn(e);
+                                Thread.currentThread().interrupt();
+                                return;
+                            }
                         }
+                        super.realRun();
                     }
-                    super.realRun();
-                }
-            });
+                });
+            } finally {
+                executor.shutdown();
+            }
         }
 
         @Override
@@ -1526,7 +1535,7 @@ public class MainApplication {
 
     static void notifyNewMessages(UserInfo userInfo) {
         GuiHelper.runInEDT(() -> {
-            JPanel panel = new JPanel(new GridBagLayout());
+            final JPanel panel = new JPanel(new GridBagLayout());
             panel.add(new JLabel(trn("You have {0} unread message.", "You have {0} unread messages.",
                     userInfo.getUnreadMessages(), userInfo.getUnreadMessages())),
                     GBC.eol());
