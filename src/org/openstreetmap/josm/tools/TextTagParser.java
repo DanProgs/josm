@@ -36,7 +36,7 @@ public final class TextTagParser {
                 return k;
             }
         }
-        String text = k.substring(1, k.length()-1);
+        final String text = k.substring(1, k.length()-1);
         return new TextAnalyzer(text).parseString("\r\t\n");
     }
 
@@ -52,25 +52,29 @@ public final class TextTagParser {
      */
     public static Map<String, String> readTagsByRegexp(String text, String splitRegex, String tagRegex, 
             boolean unescapeTextInQuotes, boolean unescapePipe) {
-        String[] lines = text.split(splitRegex, -1);
-        Pattern p = Pattern.compile(tagRegex);
-        Map<String, String> tags = new LinkedHashMap<>();
+        final String[] lines = text.split(splitRegex, -1);
+        final Pattern p = Pattern.compile(tagRegex);
+        final Map<String, String> tags = new LinkedHashMap<>();
         String k;
         String v;
         for (String line: lines) {
-            if (line.isBlank()) continue; // skip empty lines
-            Matcher m = p.matcher(line);
+            if (line.isBlank()) {
+                continue; // skip empty lines
+            }
+            final Matcher m = p.matcher(line);
             if (m.matches()) {
                  k = Utils.removeWhiteSpaces(m.group(1));
                  v = Utils.removeWhiteSpaces(m.group(2));
                  if (unescapeTextInQuotes) {
                      k = unescape(k);
                      v = unescape(v);
-                     if (k == null || v == null) return null;
+                     if (k == null || v == null) {
+                        return null;
+                     }
                  }
                  if (unescapePipe) {
-                     k = k.replaceAll("\\\\\\|", "|");
-                     v = v.replaceAll("\\\\\\|", "|");
+                     k = k.replace("\\|", "|");
+                     v = v.replace("\\|", "|");
                  }
                  tags.put(k, v);
             } else {
@@ -92,7 +96,7 @@ public final class TextTagParser {
      * @since 12683
      */
     public static Map<String, String> getValidatedTagsFromText(String buf, TagWarningCallback callback) {
-        Map<String, String> tags = readTagsFromText(buf);
+        final Map<String, String> tags = readTagsFromText(buf);
         return validateTags(tags, callback) ? tags : null;
     }
 
@@ -108,7 +112,9 @@ public final class TextTagParser {
         // tag1\tval1\ntag2\tval2\n
         tags = readTagsByRegexp(buf, "[\\r\\n]+", ".*?([a-zA-Z0-9:_]+).*\\t(.*?)", false, false);
         // try "tag\tvalue\n" format
-        if (tags != null) return tags;
+        if (tags != null) {
+            return tags;
+        }
 
         // Format
         // a=b \n c=d \n "a b"=hello
@@ -117,16 +123,21 @@ public final class TextTagParser {
         // a = b=c  - this method of parsing fails intentionally
         tags = readTagsByRegexp(buf, "[\\n\\t\\r]+", "(.*?)=(.*?)", true, false);
         // try format  t1=v1\n t2=v2\n ...
-        if (tags != null) return tags;
+        if (tags != null) {
+            return tags;
+        }
 
         // JSON-format
         String bufJson = buf.trim();
         // trim { }, if there are any
-        if (bufJson.startsWith("{") && bufJson.endsWith("}"))
+        if (bufJson.startsWith("{") && bufJson.endsWith("}")) {
             bufJson = bufJson.substring(1, bufJson.length()-1);
+        }
         tags = readTagsByRegexp(bufJson, "[\\s]*,[\\s]*",
                 "[\\s]*(\\\".*?[^\\\\]\\\")"+"[\\s]*:[\\s]*"+"(\\\".*?[^\\\\]\\\")[\\s]*", true, false);
-        if (tags != null) return tags;
+        if (tags != null) {
+            return tags;
+        }
 
         // Free format
         // a 1 "b" 2 c=3 d 4 e "5"
@@ -142,28 +153,44 @@ public final class TextTagParser {
      */
     public static boolean validateTags(Map<String, String> tags, TagWarningCallback callback) {
         int r;
-        int s = tags.size();
+        final int s = tags.size();
         if (s > MAX_KEY_COUNT) {
             // Use trn() even if for english it makes no sense, as s > 30
             r = callback.warning(trn("There was {0} tag found in the buffer, it is suspicious!",
             "There were {0} tags found in the buffer, it is suspicious!", s,
             s), "", "tags.paste.toomanytags");
-            if (r == 2 || r == 3) return false; if (r == 4) return true;
+            if (r == 2 || r == 3) {
+                return false;
+            } if (r == 4) {
+                return true;
+            }
         }
         for (Entry<String, String> entry : tags.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
+            final String key = entry.getKey();
+            final String value = entry.getValue();
             if (key.length() > MAX_KEY_LENGTH) {
                 r = callback.warning(tr("Key is too long (max {0} characters):", MAX_KEY_LENGTH), key+'='+value, "tags.paste.keytoolong");
-                if (r == 2 || r == 3) return false; if (r == 4) return true;
+                if (r == 2 || r == 3) {
+                    return false;
+                } if (r == 4) {
+                    return true;
+                }
             }
             if (!key.matches(KEY_PATTERN)) {
                 r = callback.warning(tr("Suspicious characters in key:"), key, "tags.paste.keydoesnotmatch");
-                if (r == 2 || r == 3) return false; if (r == 4) return true;
+                if (r == 2 || r == 3) {
+                    return false;
+                } if (r == 4) {
+                    return true;
+                }
             }
             if (!Utils.checkCodePointCount(value, MAX_VALUE_LENGTH)) {
                 r = callback.warning(tr("Value is too long (max {0} characters):", MAX_VALUE_LENGTH), value, "");
-                if (r == 2 || r == 3) return false; if (r == 4) return true;
+                if (r == 2 || r == 3) {
+                    return false;
+                } if (r == 4) {
+                    return true;
+                }
             }
         }
         return true;
