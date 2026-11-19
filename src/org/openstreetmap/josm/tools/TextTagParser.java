@@ -161,7 +161,7 @@ public final class TextTagParser {
             s), "", "tags.paste.toomanytags");
             if (r == 2 || r == 3) {
                 return false;
-            } if (r == 4) {
+            } else if (r == 4) {
                 return true;
             }
         }
@@ -172,7 +172,7 @@ public final class TextTagParser {
                 r = callback.warning(tr("Key is too long (max {0} characters):", MAX_KEY_LENGTH), key+'='+value, "tags.paste.keytoolong");
                 if (r == 2 || r == 3) {
                     return false;
-                } if (r == 4) {
+                } else if (r == 4) {
                     return true;
                 }
             }
@@ -180,7 +180,7 @@ public final class TextTagParser {
                 r = callback.warning(tr("Suspicious characters in key:"), key, "tags.paste.keydoesnotmatch");
                 if (r == 2 || r == 3) {
                     return false;
-                } if (r == 4) {
+                } else if (r == 4) {
                     return true;
                 }
             }
@@ -188,7 +188,7 @@ public final class TextTagParser {
                 r = callback.warning(tr("Value is too long (max {0} characters):", MAX_VALUE_LENGTH), value, "");
                 if (r == 2 || r == 3) {
                     return false;
-                } if (r == 4) {
+                } else if (r == 4) {
                     return true;
                 }
             }
