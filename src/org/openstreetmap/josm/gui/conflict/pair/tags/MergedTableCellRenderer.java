@@ -17,51 +17,47 @@ public class MergedTableCellRenderer extends TagMergeTableCellRenderer {
             setBackground(ConflictColors.BGCOLOR_SELECTED.get());
             return;
         }
-        if (MergeDecisionType.KEEP_MINE == item.getMergeDecision()) {
+        final MergeDecisionType decision = item != null ? item.getMergeDecision() : null;
+        if (decision == MergeDecisionType.KEEP_MINE || decision == MergeDecisionType.KEEP_THEIR) {
             setBackground(ConflictColors.BGCOLOR_COMBINED.get());
-        } else if (MergeDecisionType.KEEP_THEIR == item.getMergeDecision()) {
-            setBackground(ConflictColors.BGCOLOR_COMBINED.get());
-        } else if (MergeDecisionType.UNDECIDED == item.getMergeDecision()) {
+        } else {
             setBackground(ConflictColors.BGCOLOR_UNDECIDED.get());
         }
     }
 
     @Override
     protected void renderKey(TagMergeItem item, boolean isSelected) {
-        setBackgroundColor(item, isSelected);
-        if (MergeDecisionType.KEEP_MINE == item.getMergeDecision() && item.getMyTagValue() == null) {
-            setText(tr("<undefined>"));
-            setToolTipText(tr("The merged dataset will not include a tag with key {0}", item.getKey()));
-        } else if (MergeDecisionType.KEEP_THEIR == item.getMergeDecision() && item.getTheirTagValue() == null) {
-            setText(tr("<undefined>"));
-            setToolTipText(tr("The merged dataset will not include a tag with key {0}", item.getKey()));
-        } else if (MergeDecisionType.UNDECIDED == item.getMergeDecision()) {
-            setText("");
-        } else {
-            setText(item.getKey());
-            setToolTipText(item.getKey());
-        }
+        renderMergedCell(item, isSelected, true);
     }
 
     @Override
     protected void renderValue(TagMergeItem item, boolean isSelected) {
+        renderMergedCell(item, isSelected, false);
+    }
+
+    private void renderMergedCell(TagMergeItem item, boolean isSelected, boolean showKey) {
         setBackgroundColor(item, isSelected);
-        if (MergeDecisionType.KEEP_MINE == item.getMergeDecision() && item.getMyTagValue() == null) {
-            setText(tr("<undefined>"));
-            setToolTipText(tr("The merged dataset will not include a tag with key {0}", item.getKey()));
-        } else if (MergeDecisionType.KEEP_THEIR == item.getMergeDecision() && item.getTheirTagValue() == null) {
-            setText(tr("<undefined>"));
-            setToolTipText(tr("The merged dataset will not include a tag with key {0}", item.getKey()));
-        } else if (MergeDecisionType.UNDECIDED == item.getMergeDecision()) {
+
+        final MergeDecisionType decision = item.getMergeDecision();
+        if (decision == null || decision == MergeDecisionType.UNDECIDED) {
             setText("");
+            setToolTipText(null);
+            return;
+        }
+
+        final String chosenValue = switch (decision) {
+            case KEEP_MINE -> item.getMyTagValue();
+            case KEEP_THEIR -> item.getTheirTagValue();
+            default -> null;
+        };
+
+        if (chosenValue == null) {
+            setText(tr("<undefined>"));
+            setToolTipText(tr("The merged dataset will not include a tag with key {0}", item.getKey()));
         } else {
-            if (MergeDecisionType.KEEP_MINE == item.getMergeDecision()) {
-                setText(item.getMyTagValue());
-                setToolTipText(item.getMyTagValue());
-            } else if (MergeDecisionType.KEEP_THEIR == item.getMergeDecision()) {
-                setText(item.getTheirTagValue());
-                setToolTipText(item.getTheirTagValue());
-            }
+            final String text = showKey ? item.getKey() : chosenValue;
+            setText(text);
+            setToolTipText(text);
         }
     }
 }
