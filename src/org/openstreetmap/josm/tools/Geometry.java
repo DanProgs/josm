@@ -1078,7 +1078,7 @@ public final class Geometry {
         }
         // (At.A)^-1 = [invij]
         final double det = a11*a22 - a12*a12;
-        if (Math.abs(det) < 1e-5) {
+        if (det == 0 || Math.abs(det) < 1e-5) {
             return null;
         }
         final double inv11 = a22/det;
